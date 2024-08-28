@@ -1,0 +1,45 @@
+version: '3'
+services:
+  db:
+    image: mysql:8.1.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - '3306:3306'
+    expose:
+      - '3306'
+    volumes:
+      - ./mysql-dump:/docker-entrypoint-initdb.d
+
+  backend:
+    restart: on-failure
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/dependency_check_report
+    build:
+      context: ./Java/reporting
+      dockerfile: Dockerfile-spring-boot
+    ports:
+      - '8000:8000'
+    expose:
+      - '8000'
+  
+  dependency-check:
+    build:
+      context: ./python-utility
+      dockerfile: Dockerfile-API
+    volumes:
+      - ./your_project_directory:/project
+    command: ["--scan", "/project", "--format", "JSON"]
+  
+  frontend:
+    build:
+      context: ./UI/reporting-ui
+      dockerfile: Dockerfile-ui
+    ports:
+      - '3000:3000'
+    expose:
+      - '3000'
+  
+volumes:
+  mysql-dump:
+    external: true
